@@ -130,4 +130,4 @@ cron.schedule("0 8 * * 1-5", sendRandomPoem, {
 console.log("Poem bot is running...");
 
 // Manually trigger the sendRandomPoem function for testing
-// sendRandomPoem();
+sendRandomPoem();
