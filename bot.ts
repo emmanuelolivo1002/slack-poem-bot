@@ -36,9 +36,32 @@ async function fetchPoemFromAPI(): Promise<PoemResponse> {
 
 async function sendRandomPoem() {
   try {
+    // Get poems data
     const { poem, author, title } = await fetchPoemFromAPI();
 
-    console.log(channel, token);
+    // Get dates
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 is Sunday, 1 is Monday, ..., 5 is Friday, 6 is Saturday
+
+    let nextDayText = "";
+    if (dayOfWeek === 5) {
+      // If today is Friday
+      nextDayText = "Monday";
+    } else {
+      nextDayText = "tomorrow";
+    }
+
+    let extraIntroMessage = "";
+    let extraGoodbyeMessage = "";
+
+    // If Monday
+    if (dayOfWeek === 1) {
+      extraIntroMessage = "I hope you had a great weekend! ";
+      extraGoodbyeMessage = "Let's make this week a great one!";
+    } else if (dayOfWeek === 5) {
+      extraIntroMessage = "Finally the weekend is here!";
+      extraGoodbyeMessage = "Enjoy your weekend! I'll miss you!";
+    }
 
     //  Format Poem
     const formattedBlocks = [
@@ -47,13 +70,9 @@ async function sendRandomPoem() {
         type: "section",
         text: {
           type: "plain_text",
-          text: `:sunrise:Good Morning Unfolded team! \n Today I bring you a poem by ${author}:`,
+          text: `:sunrise: Good Morning Unfolded team! ${extraIntroMessage} \n Today I bring you a poem by ${author}:`,
           emoji: true,
         },
-      },
-
-      {
-        type: "divider",
       },
 
       // Poem Title
@@ -82,22 +101,19 @@ async function sendRandomPoem() {
         ],
       },
 
-      {
-        type: "divider",
-      },
-
       // Goodbye Message
       {
         type: "section",
         text: {
           type: "plain_text",
-          text: "Hope you liked that! I'll come back {tomorrow} to bring you a different poem. Love you all! :heart:",
+          text: `Hope you liked that! I'll come back ${nextDayText} to bring you a different poem. ${extraGoodbyeMessage} Love you all! :heart:`,
           emoji: true,
         },
       },
     ];
     await client.chat.postMessage({
       channel: channel,
+      text: `:sunrise: Good Morning Unfolded team! \n Today I bring you a poem by ${author}!`,
       blocks: formattedBlocks,
     });
     console.log("Poem sent successfully");
@@ -106,10 +122,12 @@ async function sendRandomPoem() {
   }
 }
 
-// Schedule to run every morning at 9:00 AM
-// cron.schedule("0 9 * * *", sendRandomPoem);
+// Schedule to run every weekday (Monday to Friday) at 8:00 AM Central Time
+cron.schedule("0 8 * * 1-5", sendRandomPoem, {
+  timezone: "America/Chicago",
+});
 
 console.log("Poem bot is running...");
 
 // Manually trigger the sendRandomPoem function for testing
-sendRandomPoem();
+// sendRandomPoem();
