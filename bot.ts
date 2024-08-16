@@ -1,11 +1,12 @@
 import { WebClient } from "@slack/web-api";
 import cron from "node-cron";
-
 import dotenv from "dotenv";
+
 dotenv.config();
 
 const token = process.env.SLACK_BOT_TOKEN;
 const channel = process.env.SLACK_CHANNEL_ID + "";
+const apiLeagueKey = process.env.API_LEAGUE_KEY + "";
 const poems = [
   "The woods are lovely, dark and deep, But I have promises to keep...",
   "Hope is the thing with feathers that perches in the soul...",
@@ -15,15 +16,38 @@ const poems = [
 
 const client = new WebClient(token);
 
+type PoemResponse = {
+  title: string;
+  author: string;
+  poem: string;
+};
+
+async function fetchPoemFromAPI(): Promise<string> {
+  try {
+    const response = await fetch("https://api.apileague.com/retrieve-random-poem", {
+      headers: {
+        "x-api-key": apiLeagueKey,
+      },
+    });
+    const data = (await response.json()) as PoemResponse;
+    return data.poem;
+  } catch (error) {
+    console.error("Error fetching poem from API:", error);
+    // Fallback to a random poem from the list if API call fails
+    return poems[Math.floor(Math.random() * poems.length)];
+  }
+}
+
 async function sendRandomPoem() {
-  const randomPoem = poems[Math.floor(Math.random() * poems.length)];
+  const poem = await fetchPoemFromAPI();
 
   console.log(channel, token);
 
   try {
     await client.chat.postMessage({
       channel: channel,
-      text: randomPoem,
+      // TODO: Format Poem
+      text: poem,
     });
     console.log("Poem sent successfully");
   } catch (error) {
