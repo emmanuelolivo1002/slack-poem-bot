@@ -7,12 +7,6 @@ dotenv.config();
 const token = process.env.SLACK_BOT_TOKEN;
 const channel = process.env.SLACK_CHANNEL_ID + "";
 const apiLeagueKey = process.env.API_LEAGUE_KEY + "";
-const poems = [
-  "The woods are lovely, dark and deep, But I have promises to keep...",
-  "Hope is the thing with feathers that perches in the soul...",
-  "I wandered lonely as a cloud that floats on high o'er vales and hills...",
-  // Add more poems here
-];
 
 const client = new WebClient(token);
 
@@ -22,32 +16,89 @@ type PoemResponse = {
   poem: string;
 };
 
-async function fetchPoemFromAPI(): Promise<string> {
+async function fetchPoemFromAPI(): Promise<PoemResponse> {
   try {
     const response = await fetch("https://api.apileague.com/retrieve-random-poem", {
       headers: {
         "x-api-key": apiLeagueKey,
       },
     });
+    if (!response.ok) {
+      throw new Error(`Error fetching poem: ${response.statusText}`);
+    }
     const data = (await response.json()) as PoemResponse;
-    return data.poem;
+    return data;
   } catch (error) {
     console.error("Error fetching poem from API:", error);
-    // Fallback to a random poem from the list if API call fails
-    return poems[Math.floor(Math.random() * poems.length)];
+    throw new Error("Error fetching poem from API");
   }
 }
 
 async function sendRandomPoem() {
-  const poem = await fetchPoemFromAPI();
-
-  console.log(channel, token);
-
   try {
+    const { poem, author, title } = await fetchPoemFromAPI();
+
+    console.log(channel, token);
+
+    //  Format Poem
+    const formattedBlocks = [
+      // Intro Message
+      {
+        type: "section",
+        text: {
+          type: "plain_text",
+          text: `:sunrise:Good Morning Unfolded team! \n Today I bring you a poem by ${author}:`,
+          emoji: true,
+        },
+      },
+
+      {
+        type: "divider",
+      },
+
+      // Poem Title
+      {
+        type: "header",
+        text: {
+          type: "plain_text",
+          text: title,
+          emoji: true,
+        },
+      },
+
+      // Poem content
+      {
+        type: "rich_text",
+        elements: [
+          {
+            type: "rich_text_quote",
+            elements: [
+              {
+                type: "text",
+                text: poem,
+              },
+            ],
+          },
+        ],
+      },
+
+      {
+        type: "divider",
+      },
+
+      // Goodbye Message
+      {
+        type: "section",
+        text: {
+          type: "plain_text",
+          text: "Hope you liked that! I'll come back {tomorrow} to bring you a different poem. Love you all! :heart:",
+          emoji: true,
+        },
+      },
+    ];
     await client.chat.postMessage({
       channel: channel,
-      // TODO: Format Poem
-      text: poem,
+      blocks: formattedBlocks,
     });
     console.log("Poem sent successfully");
   } catch (error) {
